@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- PWA Setup -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#16a34a">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PaddyGuard AI — Find Pesticide Shops</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f4f8f4;color:#0c1a0e;}
+.header{background:#052e16;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.logo{display:flex;align-items:center;gap:8px;}
+.logo-name{font-size:18px;font-weight:800;color:#fff;}
+.logo-ai{font-size:10px;font-weight:700;color:#4ade80;background:rgba(74,222,128,.15);padding:2px 8px;border-radius:20px;}
+.back-btn{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:6px;}
+.back-btn:hover{color:#4ade80;}
+.hdr-center{color:rgba(255,255,255,.8);font-size:14px;}
+.layout{display:flex;height:calc(100vh - 62px);}
+.sidebar{width:400px;background:#fff;border-right:1px solid #d4e8d8;display:flex;flex-direction:column;overflow:hidden;}
+.sb-top{padding:20px;}
+.sb-title{font-size:20px;font-weight:800;margin-bottom:4px;}
+.sb-sub{font-size:12px;color:#7a9a7f;margin-bottom:16px;}
+.search-group{display:flex;gap:8px;margin-bottom:12px;}
+.search-input{flex:1;display:flex;align-items:center;gap:8px;background:#f4f8f4;border:1.5px solid #d4e8d8;border-radius:12px;padding:10px 14px;}
+.search-input input{background:none;border:none;outline:none;flex:1;font-size:14px;}
+.search-input input::placeholder{color:#a3b9a7;}
+.search-btn{background:#16a34a;color:#fff;border:none;border-radius:12px;padding:10px 20px;font-weight:700;cursor:pointer;}
+.search-btn:hover{background:#15803d;}
+.gps-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#16a34a;color:#fff;border:none;border-radius:12px;padding:12px;font-weight:700;cursor:pointer;margin-bottom:16px;}
+.gps-btn:disabled{background:#9ca3af;cursor:not-allowed;}
+.loc-confirm{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#16a34a;display:none;align-items:center;gap:8px;}
+.loc-confirm.show{display:flex;}
+.map-type-row{display:flex;gap:6px;margin-bottom:12px;}
+.map-type{flex:1;padding:6px;border-radius:8px;border:1.5px solid #d4e8d8;background:#f4f8f4;font-size:11px;font-weight:600;text-align:center;cursor:pointer;}
+.map-type.active{background:#f0fdf4;border-color:#16a34a;color:#16a34a;}
+.radius-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.radius-btn{padding:6px 12px;border-radius:8px;border:1.5px solid #d4e8d8;background:#f4f8f4;font-size:11px;font-weight:600;cursor:pointer;}
+.radius-btn.active{background:#f0fdf4;border-color:#16a34a;color:#16a34a;}
+.status{display:flex;align-items:center;gap:8px;background:#f4f8f4;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#7a9a7f;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#d1d5db;}
+.status-dot.green{background:#16a34a;}
+.status-dot.loading{background:#f59e0b;animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.error-msg{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#dc2626;display:none;}
+.error-msg.show{display:block;}
+.result-banner{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:600;color:#16a34a;display:none;justify-content:space-between;}
+.result-banner.show{display:flex;}
+.shop-list{flex:1;overflow-y:auto;padding:0 20px 20px;}
+.shop-card{background:#fff;border:1px solid #d4e8d8;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .2s;}
+.shop-card:hover{border-color:#16a34a;transform:translateX(3px);}
+.shop-card.selected{border-color:#16a34a;background:#f0fdf4;}
+.shop-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.shop-num{width:24px;height:24px;border-radius:6px;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.shop-name{font-weight:700;font-size:14px;flex:1;margin-left:10px;}
+.shop-dist{font-size:11px;font-weight:700;color:#16a34a;background:#f0fdf4;padding:3px 8px;border-radius:6px;}
+.shop-addr{font-size:12px;color:#7a9a7f;margin-bottom:8px;padding-left:34px;}
+.shop-meta{display:flex;gap:8px;padding-left:34px;margin-bottom:8px;font-size:11px;}
+.shop-rating{color:#f59e0b;}
+.shop-actions{display:flex;gap:8px;padding-left:34px;}
+.dir-btn{background:#16a34a;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.view-btn{background:#f4f8f4;border:1px solid #d4e8d8;color:#5a7a5f;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.empty-state{text-align:center;padding:48px 20px;color:#a3b9a7;}
+.map-wrap{flex:1;position:relative;}
+#map{width:100%;height:100%;}
+.map-loading{position:absolute;top:0;left:0;width:100%;height:100%;background:#f4f8f4;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:10;}
+.map-controls{position:absolute;top:12px;right:12px;z-index:5;display:flex;flex-direction:column;gap:6px;}
+.map-controls button{background:#fff;border:1px solid #d4e8d8;border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer;}
+@media(max-width:700px){
+  .layout{flex-direction:column;}
+  .sidebar{width:100%;height:50vh;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+      <circle cx="18" cy="18" r="17" fill="#052e16" stroke="#16a34a" stroke-width="1.5"/>
+      <path d="M18 5C18 5 10 10 10 19C10 23.8 13 27.5 18 29C23 27.5 26 23.8 26 19C26 10 18 5 18 5Z" fill="#4ade80"/>
+    </svg>
+    <span class="logo-name">PaddyGuard</span><span class="logo-ai">AI</span>
+  </div>
+  <div class="hdr-center">📍 Find Nearby Pesticide Shops</div>
+  <a href="/" class="back-btn">← Back to Detection</a>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sb-top">
+      <div class="sb-title">Pesticide Shops</div>
+      <div class="sb-sub">Find shops near your farm</div>
+
+      <div class="search-group">
+        <div class="search-input">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#7a9a7f" stroke-width="1.4"/><path d="M11 11L14 14" stroke="#7a9a7f" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <input type="text" id="locationInput" placeholder="e.g. Karimnagar, Telangana" onkeydown="if(event.key==='Enter')searchLocation()"/>
+        </div>
+        <button class="search-btn" onclick="searchLocation()">Search</button>
+      </div>
+
+      <button class="gps-btn" id="gpsBtn" onclick="useGPS()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M8 1V3M8 13V15M1 8H3M13 8H15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Use My Live Location
+      </button>
+
+      <div class="loc-confirm" id="locConfirm">
+        <span>📍</span><span id="locConfirmText">Location set</span>
+      </div>
+
+      <div class="map-type-row">
+        <div class="map-type active" onclick="setMapType('roadmap',this)">Road</div>
+        <div class="map-type" onclick="setMapType('satellite',this)">Satellite</div>
+        <div class="map-type" onclick="setMapType('hybrid',this)">Hybrid</div>
+        <div class="map-type" onclick="setMapType('terrain',this)">Terrain</div>
+      </div>
+
+      <div class="radius-row">
+        <div class="radius-btn" onclick="setRadius(2000,this)">2km</div>
+        <div class="radius-btn" onclick="setRadius(5000,this)">5km</div>
+        <div class="radius-btn" onclick="setRadius(10000,this)">10km</div>
+        <div class="radius-btn" onclick="setRadius(20000,this)">20km</div>
+        <div class="radius-btn active" onclick="setRadius(50000,this)">50km</div>
+      </div>
+
+      <div class="status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Enter location or use GPS to find shops</span>
+      </div>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <div class="result-banner" id="resultBanner">
+        <span>Found <strong id="shopCount">0</strong> shops</span>
+        <span id="radiusText"></span>
+      </div>
+    </div>
+
+    <div class="shop-list" id="shopList">
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="20" r="12" stroke="currentColor" stroke-width="1.5"/><path d="M24 32V44" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <p>Enter your location or use GPS<br/>to find nearby pesticide shops</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="map-wrap">
+    <div class="map-loading" id="mapLoading">
+      <div style="width:40px;height:40px;border:3px solid #d4e8d8;border-top-color:#16a34a;border-radius:50%;animation:spin .8s linear infinite;"></div>
+      <p>Loading Google Maps...</p>
+    </div>
+    <div id="map" style="display:none"></div>
+    <div class="map-controls">
+      <button onclick="if(window.map)window.map.setZoom(window.map.getZoom()+1)">+ Zoom In</button>
+      <button onclick="if(window.map)window.map.setZoom(window.map.getZoom()-1)">- Zoom Out</button>
+      <button onclick="fitMarkers()">⊞ Fit All</button>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+
+<script>
+const KEYWORDS = ['pesticide shop', 'agricultural shop', 'krishi kendra', 'agro centre', 'fertilizer store', 'farm supply', 'pesticide store', 'agri clinic'];
+let map = null, geocoder = null, placesService = null;
+let userLat = null, userLng = null;
+let markers = [], userMarker = null;
+let shops = [], searchRadius = 50000; // 50km default
+let currentMapType = 'roadmap';
+let mapsReady = false;
+let infoWindow = null;
+let currentSearchLocation = null;
+
+// Called when Google Maps loads
+window.initMap = function() {
+  console.log('Map loaded');
+  mapsReady = true;
+  geocoder = new google.maps.Geocoder();
+  document.getElementById('mapLoading').style.display = 'none';
+  document.getElementById('map').style.display = 'block';
+  
+  // Default center (India)
+  const defaultCenter = { lat: 20.5937, lng: 78.9629 };
+  
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: defaultCenter,
+    zoom: 5,
+    mapTypeId: currentMapType,
+    mapTypeControl: false,
+    zoomControl: false,
+    styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
+  });
+  window.map = map;
+  
+  placesService = new google.maps.places.PlacesService(map);
+  infoWindow = new google.maps.InfoWindow();
+  
+  setStatus('', 'Ready — Enter a location or use GPS');
+};
+
+function searchLocation() {
+  const val = document.getElementById('locationInput').value.trim();
+  if (!val) {
+    showError('Please enter a city or village name');
+    return;
+  }
+  
+  if (!mapsReady || !geocoder) {
+    showError('Maps still loading. Please wait a moment.');
+    return;
+  }
+  
+  hideError();
+  setStatus('loading', 'Searching for "' + val + '"...');
+  
+  // Try multiple query formats
+  let queries = [
+    val + ', Telangana, India',
+    val + ', India',
+    val
+  ];
+  
+  let attempt = 0;
+  
+  function tryGeocode() {
+    if (attempt >= queries.length) {
+      setStatus('', 'Ready');
+      showError('Could not find "' + val + '". Try adding state name e.g. "Karimnagar, Telangana" or use GPS.');
+      return;
+    }
+    
+    const query = queries[attempt];
+    console.log('Geocoding attempt', attempt + 1, ':', query);
+    
+    geocoder.geocode({ address: query, region: 'IN' }, (results, status) => {
+      console.log('Geocode status:', status);
+      
+      if (status === 'OK' && results && results.length > 0) {
+        // SUCCESS - found the location!
+        const loc = results[0].geometry.location;
+        userLat = loc.lat();
+        userLng = loc.lng();
+        const center = { lat: userLat, lng: userLng };
+        currentSearchLocation = center;
+        
+        // Show confirmation
+        const addr = results[0].formatted_address;
+        showLocationConfirm('📍 ' + addr);
+        hideError();
+        
+        // Center map at the searched location
+        map.setCenter(center);
+        map.setZoom(13);
+        
+        // Place user marker
+        placeUserMarker(center);
+        
+        // Clear previous shops and markers
+        clearMarkers();
+        shops = [];
+        
+        // Search nearby shops at THIS location
+        setStatus('loading', 'Searching for pesticide shops near ' + val + '...');
+        searchNearby(center);
+        
+      } else {
+        attempt++;
+        tryGeocode();
+      }
+    });
+  }
+  
+  tryGeocode();
+}
+
+function useGPS() {
+  const btn = document.getElementById('gpsBtn');
+  if (!mapsReady) {
+    showError('Maps still loading. Please wait.');
+    return;
+  }
+  
+  if (!navigator.geolocation) {
+    showError('GPS not supported. Please type your location.');
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.innerHTML = '<div style="width:16px;height:16px;border:2px solid white;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;"></div> Detecting GPS...';
+  setStatus('loading', 'Accessing GPS location...');
+  
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      const center = { lat: userLat, lng: userLng };
+      currentSearchLocation = center;
+      
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M8 1V3M8 13V15M1 8H3M13 8H15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg> Use My Live Location';
+      
+      showLocationConfirm('📍 GPS location detected');
+      
+      map.setCenter(center);
+      map.setZoom(14);
+      placeUserMarker(center);
+      clearMarkers();
+      shops = [];
+      searchNearby(center);
+    },
+    err => {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M8 1V3M8 13V15M1 8H3M13 8H15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg> Use My Live Location';
+      
+      let msg = 'GPS error. Please type your location.';
+      if (err.code === 1) msg = 'Location access denied. Please allow location or type manually.';
+      showError(msg);
+      setStatus('', 'GPS failed — type location above');
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+function placeUserMarker(center) {
+  if (userMarker) userMarker.setMap(null);
+  userMarker = new google.maps.Marker({
+    position: center,
+    map: map,
+    title: 'Your Location',
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 10,
+      fillColor: '#16a34a',
+      fillOpacity: 1,
+      strokeColor: '#fff',
+      strokeWeight: 2
+    }
+  });
+}
+
+function searchNearby(center) {
+  if (!placesService) {
+    setStatus('', 'Place search not available');
+    return;
+  }
+  
+  const location = new google.maps.LatLng(center.lat, center.lng);
+  let completed = 0;
+  let allResults = [];
+  
+  KEYWORDS.forEach(keyword => {
+    placesService.nearbySearch(
+      { location: location, radius: searchRadius, keyword: keyword },
+      (results, status) => {
+        completed++;
+        if (status === 'OK' && results && results.length > 0) {
+          results.forEach(place => {
+            if (!allResults.find(s => s.place_id === place.place_id)) {
+              const dist = calculateDistance(center, place.geometry.location);
+              allResults.push({ ...place, distance: dist });
+            }
+          });
+        }
+        if (completed === KEYWORDS.length) {
+          // Sort by distance and remove duplicates
+          allResults.sort((a, b) => a.distance - b.distance);
+          shops = allResults;
+          renderShops(shops);
+        }
+      }
+    );
+  });
+}
+
+function renderShops(shopsList) {
+  const container = document.getElementById('shopList');
+  const count = shopsList.length;
+  
+  document.getElementById('shopCount').innerHTML = count;
+  const radiusKm = (searchRadius/1000).toFixed(0);
+  document.getElementById('radiusText').innerHTML = radiusKm + 'km radius';
+  document.getElementById('resultBanner').classList.add('show');
+  
+  if (count === 0) {
+    setStatus('', 'No shops found. Try larger radius.');
+    container.innerHTML = `<div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="20" r="12" stroke="currentColor" stroke-width="1.5"/><path d="M24 32V44" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <p>No pesticide shops found nearby.<br/>Try increasing the radius to 20km or 50km.</p>
+    </div>`;
+    return;
+  }
+  
+  setStatus('green', count + ' pesticide shops found near ' + (document.getElementById('locationInput').value || 'your location'));
+  
+  // Add markers to map
+  shopsList.forEach((shop, i) => {
+    const marker = new google.maps.Marker({
+      position: shop.geometry.location,
+      map: map,
+      title: shop.name,
+      label: { text: String(i + 1), color: '#fff', fontSize: '11px', fontWeight: 'bold' }
+    });
+    marker.addListener('click', () => selectShop(i, shop));
+    markers.push(marker);
+  });
+  
+  // Fit bounds to show all markers
+  if (markers.length > 0) {
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend(userMarker.getPosition());
+    markers.forEach(m => bounds.extend(m.getPosition()));
+    map.fitBounds(bounds);
+  }
+  
+  // Render shop cards
+  container.innerHTML = shopsList.map((shop, i) => {
+    const dist = shop.distance >= 1000 ? (shop.distance/1000).toFixed(1) + ' km' : Math.round(shop.distance) + ' m';
+    const rating = shop.rating ? shop.rating.toFixed(1) : null;
+    const dirUrl = `https://www.google.com/maps/dir/?api=1&destination_place_id=${shop.place_id}`;
+    const viewUrl = `https://www.google.com/maps/place/?q=place_id:${shop.place_id}`;
+    const address = shop.vicinity || 'Address not available';
+    return `
+    <div class="shop-card" id="shopCard${i}" onclick="selectShop(${i})">
+      <div class="shop-header">
+        <div class="shop-num">${i+1}</div>
+        <div class="shop-name">${escapeHtml(shop.name)}</div>
+        <div class="shop-dist">${dist}</div>
+      </div>
+      <div class="shop-addr">${escapeHtml(address)}</div>
+      <div class="shop-meta">
+        ${rating ? `<span class="shop-rating">★ ${rating}</span>` : ''}
+      </div>
+      <div class="shop-actions">
+        <a href="${dirUrl}" target="_blank" class="dir-btn" onclick="event.stopPropagation()">🗺 Directions</a>
+        <a href="${viewUrl}" target="_blank" class="view-btn" onclick="event.stopPropagation()">📍 View</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectShop(index, shop) {
+  // Highlight selected card
+  for (let i = 0; i < shops.length; i++) {
+    const el = document.getElementById('shopCard' + i);
+    if (el) el.classList.remove('selected');
+  }
+  document.getElementById('shopCard' + index)?.classList.add('selected');
+  
+  const selectedShop = shop || shops[index];
+  if (selectedShop && markers[index]) {
+    map.panTo(markers[index].getPosition());
+    map.setZoom(17);
+    
+    if (infoWindow) {
+      infoWindow.setContent(`
+        <div style="font-family:sans-serif;padding:8px;max-width:200px">
+          <strong>${escapeHtml(selectedShop.name)}</strong><br/>
+          ${escapeHtml(selectedShop.vicinity || '')}<br/>
+          <a href="https://www.google.com/maps/dir/?api=1&destination_place_id=${selectedShop.place_id}" target="_blank" style="color:#16a34a;font-size:12px;">Get Directions →</a>
+        </div>
+      `);
+      infoWindow.open(map, markers[index]);
+    }
+  }
+}
+
+function setMapType(type, el) {
+  currentMapType = type;
+  if (map) map.setMapTypeId(type);
+  document.querySelectorAll('.map-type').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function setRadius(radius, el) {
+  searchRadius = radius;
+  document.querySelectorAll('.radius-btn').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  
+  // Re-search if we have a current location
+  if (currentSearchLocation) {
+    setStatus('loading', 'Searching with ' + (radius/1000) + 'km radius...');
+    clearMarkers();
+    shops = [];
+    searchNearby(currentSearchLocation);
+  }
+}
+
+function fitMarkers() {
+  if (!map || markers.length === 0) return;
+  const bounds = new google.maps.LatLngBounds();
+  if (userMarker) bounds.extend(userMarker.getPosition());
+  markers.forEach(m => bounds.extend(m.getPosition()));
+  map.fitBounds(bounds);
+}
+
+function clearMarkers() {
+  markers.forEach(m => m.setMap(null));
+  markers = [];
+}
+
+function calculateDistance(from, to) {
+  const R = 6371000;
+  const lat1 = from.lat * Math.PI / 180;
+  const lat2 = (typeof to.lat === 'function' ? to.lat() : to.lat) * Math.PI / 180;
+  const dLat = lat2 - lat1;
+  const dLng = ((typeof to.lng === 'function' ? to.lng() : to.lng) - from.lng) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function setStatus(type, text) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot' + (type === 'loading' ? ' loading' : type === 'green' ? ' green' : '');
+  document.getElementById('statusText').innerText = text;
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.innerHTML = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('show');
+}
+
+function showLocationConfirm(msg) {
+  const el = document.getElementById('locConfirm');
+  document.getElementById('locConfirmText').innerText = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+// Load Google Maps
+document.addEventListener('DOMContentLoaded', function() {
+  const script = document.createElement('script');
+  // IMPORTANT: Replace YOUR_API_KEY with your actual Google Maps API key
+  script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDfD-l8PamdboGfI9-Yptcsq4mkg8p_y6g&libraries=places&callback=initMap';
+  script.async = true;
+  script.defer = true;
+  document.head.appendChild(script);
+});
+</script>
+{%- include "chatbot_widget.html" -%}
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js')
+          .then(reg => console.log('ServiceWorker registered'))
+          .catch(err => console.log('ServiceWorker registration failed: ', err));
+      });
+    }
+  </script>
+</body>
+
+</html>
